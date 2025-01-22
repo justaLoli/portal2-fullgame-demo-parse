@@ -7,7 +7,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { SourceDemoParser } from '@nekz/sdp';
+import { SourceDemoParser, } from "https://unpkg.com/@nekz/sdp@0.10.0/esm/src/mod.js";
 const dropZone = document.getElementById("drop-zone");
 const sortButton = document.getElementById("sort-btn");
 const fileTableBody = document.querySelector("#file-table tbody");
@@ -33,31 +33,52 @@ const sortFiles = (files) => {
 // 更新表格显示
 const updateTable = () => {
     fileTableBody.innerHTML = ''; // 清空表格
-    fileList.forEach(({ file, mapName }) => {
+    fileList.forEach(({ file, demoInfo }) => {
         const row = document.createElement("tr");
         const nameCell = document.createElement("td");
         nameCell.textContent = file.name;
         const mapCell = document.createElement("td");
-        mapCell.textContent = mapName;
+        mapCell.textContent = demoInfo.mapName;
+        const timeCell = document.createElement("td");
+        timeCell.textContent = demoInfo.playbackTime.toString();
+        const tickCell = document.createElement("td");
+        tickCell.textContent = demoInfo.playbackTicks.toString();
         row.appendChild(nameCell);
         row.appendChild(mapCell);
+        row.appendChild(timeCell);
+        row.appendChild(tickCell);
         fileTableBody.appendChild(row);
     });
 };
 // 解析文件并提取 mapName
 const parseDemoFile = (file) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _a, _b, _c;
     try {
         const arrayBuffer = yield file.arrayBuffer();
         const demo = SourceDemoParser.default()
-            .setOptions({ messages: false })
             .parse(arrayBuffer);
-        // 检查 mapName 是否为 undefined，若是，返回默认值
-        return (_a = demo.mapName) !== null && _a !== void 0 ? _a : "Unknown";
+        // Fix message ticks?
+        demo.detectGame().adjustTicks();
+        demo.adjustRange();
+        let mapName = demo.mapName;
+        let playbackTime = demo.playbackTime;
+        let playbackTicks = demo.playbackTicks;
+        // Adjust time and tick.
+        console.log(demo.playbackTime);
+        // 返回包含 mapName, playbackTime 和 playbackTicks 的对象
+        return {
+            mapName: (_a = demo.mapName) !== null && _a !== void 0 ? _a : "Unknown",
+            playbackTime: (_b = demo.playbackTime) !== null && _b !== void 0 ? _b : 0, // 假设 playbackTime 存在，若没有提供默认值 0
+            playbackTicks: (_c = demo.playbackTicks) !== null && _c !== void 0 ? _c : 0, // 假设 playbackTicks 存在，若没有提供默认值 0
+        };
     }
     catch (error) {
         console.error("Error parsing demo file:", file.name, error);
-        return "Error";
+        return {
+            mapName: "Error",
+            playbackTime: 0,
+            playbackTicks: 0,
+        };
     }
 });
 // 处理拖放文件
@@ -66,8 +87,8 @@ dropZone.addEventListener("drop", (event) => __awaiter(void 0, void 0, void 0, f
     dropZone.classList.remove("dragover");
     const files = Array.from(event.dataTransfer.files);
     for (const file of files) {
-        const mapName = yield parseDemoFile(file);
-        fileList.push({ file, mapName });
+        const demoInfo = yield parseDemoFile(file);
+        fileList.push({ file, demoInfo });
     }
     fileList = sortFiles(fileList);
     updateTable(); // 更新表格显示
