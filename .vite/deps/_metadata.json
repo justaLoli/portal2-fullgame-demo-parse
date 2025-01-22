@@ -1,0 +1,15 @@
+{
+  "hash": "1b180b58",
+  "configHash": "f7300a0f",
+  "lockfileHash": "d2ae16e6",
+  "browserHash": "7b1d7e8d",
+  "optimized": {
+    "@nekz/sdp": {
+      "src": "../../node_modules/@nekz/sdp/esm/src/mod.js",
+      "file": "@nekz_sdp.js",
+      "fileHash": "f98ad70d",
+      "needsInterop": false
+    }
+  },
+  "chunks": {}
+}
