@@ -1,0 +1,41 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background-color: #f9f9f9;
+}
+
+h1 {
+  text-align: center;
+}
+
+#drop-zone {
+  border: 2px dashed #ccc;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  margin: 20px auto;
+  width: 80%;
+  background-color: #fff;
+  transition: background-color 0.3s;
+}
+
+#drop-zone.dragover {
+  background-color: #e0f7fa;
+}
+
+#file-table {
+  width: 80%;
+  margin: 20px auto;
+  border-collapse: collapse;
+}
+
+#file-table th, #file-table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+}
+
+#file-table th {
+  background-color: #f2f2f2;
+}
