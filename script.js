@@ -7,31 +7,12 @@ import {
     SourceTimer,
 } from "https://unpkg.com/@nekz/sdp@0.10.0/esm/src/speedrun/mod.js";
 
-// Util
-const formatTime = (time) => {
-    let sec = Math.floor(time);
-    const ms = Math.round((time - sec) * 1000).toString().padStart(3,"0");
-        // .toString()
-        // .padStart(6, "0")
-        // .slice(0, 3);
-
-    if (sec >= 60) {
-        let min = sec / 60;
-        sec = sec % 60;
-        if (min >= 60) {
-            let hrs = min / 60;
-            min = Math.floor(min % 60);
-            return `${Math.floor(hrs)}:${min.toString().padStart(2, "0")}:${
-                sec.toString().padStart(2, "0")
-            }.${ms}`;
-        }
-        return `${Math.floor(min)}:${sec.toString().padStart(2, "0")}.${ms}`;
-    }
-    return `${Math.floor(sec)}.${ms}`;
-};
 
 const dropZone = document.getElementById("drop-zone");
-const testButton = document.getElementById("btn");
+const clearButton = document.getElementById("clear-btn");
+const copyButton = document.getElementById("copy-btn");
+const autoClearCheckbox = document.getElementById('auto-clear');
+const compactModeCheckbox = document.getElementById('compact-mode');
 const fileTableBody = document.querySelector("#file-table tbody");
 const fileTableHead = document.querySelector("#file-table thead");
 // 存储文件数据
@@ -73,47 +54,53 @@ const createTableTitle = (titles) => {
     fileTableHead.appendChild(headerRow);
 };
 // 更新表格显示
-const updateTable = () => {
+const showFullTable = () => {
     clearTable(); // 清空表格
     createTableTitle(["Split Name", "Split Time (Seconds)", "Demo Files"])
     groupedFileList.forEach( group => {
         const row = document.createElement("tr");
         const nameCell = document.createElement("td");
-        nameCell.textContent = group.splitName;
+        nameCell.textContent = mapNameMapping[group.splitName] || group.splitName;
         const timeCell = document.createElement("td");
-        timeCell.textContent = (Math.round(group.sumTick / 60 * 1000) / 1000).toString();
+        timeCell.textContent = (Math.round(group.sumTime * 1000) / 1000).toFixed(3);
         const demosCell = document.createElement("td");
-        demosCell.innerHTML = group.files.map(file => file.file.name).join("<br>");
+        demosCell.innerHTML = group.files.map(file => file.file.name).join("\n");
         row.appendChild(nameCell);
         row.appendChild(timeCell);
         row.appendChild(demosCell);
         fileTableBody.appendChild(row);
     } );
-    // createTableTitle(["File Name", "Map Name", "Playback Time", "Playback Time (Seconds)", "Playback Ticks"]);
-    // fileList.forEach( file => {
-    //     const row = document.createElement("tr");
-    //     const nameCell = document.createElement("td");
-    //     nameCell.textContent = file.file.name;
-    //     const mapCell = document.createElement("td");
-    //     mapCell.textContent = file.mapName;
-    //     const timeCell = document.createElement("td");
-    //     timeCell.textContent = formatTime(file.playbackTime);
-    //     const timesecCell = document.createElement("td");
-    //     timesecCell.textContent = file.playbackTime.toString();
-    //     const tickCell = document.createElement("td");
-    //     tickCell.textContent = file.playbackTicks.toString();
-    //     row.appendChild(nameCell);
-    //     row.appendChild(mapCell);
-    //     row.appendChild(timeCell);
-    //     row.appendChild(timesecCell);
-    //     row.appendChild(tickCell);
-    //     fileTableBody.appendChild(row);
-    // });
+}
+const showCompactTable = () => {
+    clearTable();
+    createTableTitle([player]);
+    groupedFileList.forEach( group => {
+        const row1 = document.createElement("tr");
+        const timeCell = document.createElement("td");
+        timeCell.textContent = (Math.round(group.sumTime * 1000) / 1000).toFixed(3);
+        row1.appendChild(timeCell);
+        const row2 = document.createElement("tr");
+        const demosCell = document.createElement("td");
+        demosCell.innerHTML = group.files.map(file => file.file.name).join("<br>");
+        row2.appendChild(demosCell);
+        fileTableBody.appendChild(row1);
+        fileTableBody.appendChild(row2);
+    });
+}
+const updateTable = () => {
+    if (groupedFileList.length===0){clearTable();return;}
+    if (compactModeCheckbox.checked){
+        showCompactTable();
+    }
+    else{
+        showFullTable();
+    }
 };
 
 const parser = SourceDemoParser.default();
 const speedrunTimer = SourceTimer.default();
 const sarTimer = SarTimer.default();
+let player = "Unknown Player";
 const tryParseDemo = (ev, fullAdjustment = true) => {
     let demo = null;
     try {
@@ -123,7 +110,7 @@ const tryParseDemo = (ev, fullAdjustment = true) => {
 
         // Fix message ticks
         demo.detectGame().adjustTicks();
-
+        player = demo.clientName;
         // Split screen index
         // should not important
         // slots = demo.messages.find((msg) => msg.slot === 1) ? 2 : 1;
@@ -165,13 +152,13 @@ const parseListFiles = ()=>{
                 if(demo != null){
                     file.mapName = demo.mapName ?? "unknown";
                     file.playbackTime = demo.playbackTime ?? 0;
-                    file.playbackTime = Math.round(file.playbackTime * 1000) / 1000;
+                    // file.playbackTime = Math.round(file.playbackTime * 1000) / 1000;
                     file.playbackTicks = demo.playbackTicks ?? 0;
                     file.parsed = true;
                 }
 
                 if(++count === fileList.length){
-                    // tuneDemoTime();
+                    tuneDemoTime();
                     resolve();
                 }
 
@@ -182,10 +169,15 @@ const parseListFiles = ()=>{
 };
 //this is bad and will not add to correct time :( so forget about it
 const tuneDemoTime = ()=>{
-    let sar_speedrun_offset = 18980;
-    fileList[0].playbackTicks += sar_speedrun_offset;
-    fileList[0].playbackTime = fileList[0].playbackTicks / 60;
-    fileList[0].playbackTime = Math.round(fileList[0].playbackTime * 1000) / 1000;
+    let sar_speedrun_demo_offset = 18637; // magic number :)
+    const container_ride = fileList.find(
+        (element) => element.mapName === "sp_a1_intro1"
+    );
+    if(container_ride){
+        container_ride.playbackTicks += sar_speedrun_demo_offset;
+        container_ride.playbackTime = container_ride.playbackTicks / 60;
+        container_ride.playbackTime = Math.round(fileList[0].playbackTime * 1000) / 1000;
+    }
     const tube_ride = fileList.find(
         (element) => element.mapName === "sp_a2_bts6"
     );
@@ -196,6 +188,7 @@ const tuneDemoTime = ()=>{
     if(long_fall){long_fall.playbackTime = 77.767;long_fall.playbackTicks = 4666;}
 };
 const groupFiles = ()=>{
+    groupedFileList.length = 0; // clear list
     let group;
     const mapSet = new Set();
     fileList.forEach(file=>{
@@ -226,6 +219,10 @@ const groupFiles = ()=>{
 dropZone.addEventListener("drop", (event) => {
     event.preventDefault();
     dropZone.classList.remove("dragover");
+    if(autoClearCheckbox.checked){
+        fileList.length = 0;
+        groupedFileList.length = 0;
+    }
     const files = Array.from(event.dataTransfer.files);
     const updatedFiles = files.map(demo => {
         return {
@@ -245,7 +242,9 @@ dropZone.addEventListener("drop", (event) => {
         updateTable(); // 更新表格显示
         console.log(fileList);
         const sumPlaybackTime = () => {
+            // const ticks = fileList.reduce((total, item) => total + (item.playbackTicks || 0), 0);
             return fileList.reduce((total, item) => total + (item.playbackTime || 0), 0);
+            // return Math.round(ticks/60 *1000)/1000;
         };
         console.log(sumPlaybackTime());
         console.log(formatTime(sumPlaybackTime()));
@@ -253,11 +252,22 @@ dropZone.addEventListener("drop", (event) => {
     // debugger;
 });
 // 处理排序按钮点击
-testButton.addEventListener("click", () => {
+clearButton.addEventListener("click", () => {
     fileList.length=0;
     groupedFileList.length = 0;
     clearTable();
 });
+// 复制
+copyButton.addEventListener("click", () => {
+    const range = document.createRange();
+    range.selectNode(document.getElementById("file-table"));
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    document.execCommand("copy");
+    window.getSelection().removeAllRanges();
+    showToast("Table copied to clipboard!");
+});
+compactModeCheckbox.addEventListener('change', ()=>{updateTable();});
 // 处理拖拽区的 hover 状态
 dropZone.addEventListener("dragover", (event) => {
     event.preventDefault();
@@ -266,3 +276,112 @@ dropZone.addEventListener("dragover", (event) => {
 dropZone.addEventListener("dragleave", () => {
     dropZone.classList.remove("dragover");
 });
+
+// Util
+const formatTime = (time) => {
+    let sec = Math.floor(time);
+    const ms = Math.ceil((time - sec) * 1000000)
+            .toString()
+            .padStart(6, "0")
+            .slice(0, 3);
+    // const ms = Math.round((time - sec) * 1000).toString().padStart(3,"0");
+        // .toString()
+        // .padStart(6, "0")
+        // .slice(0, 3);
+
+    if (sec >= 60) {
+        let min = sec / 60;
+        sec = sec % 60;
+        if (min >= 60) {
+            let hrs = min / 60;
+            min = Math.floor(min % 60);
+            return `${Math.floor(hrs)}:${min.toString().padStart(2, "0")}:${
+                sec.toString().padStart(2, "0")
+            }.${ms}`;
+        }
+        return `${Math.floor(min)}:${sec.toString().padStart(2, "0")}.${ms}`;
+    }
+    return `${Math.floor(sec)}.${ms}`;
+};
+const toast = document.getElementById("toast");
+let isToastVisible = false;
+let lastClickTime = 0;
+const showToast = (message) =>{
+    const currentTime = Date.now();
+    if ( currentTime - lastClickTime < 1000 || isToastVisible ){
+        return;
+    }
+    lastClickTime = currentTime;
+    toast.textContent = message;
+    toast.classList.add("show");
+    isToastVisible = true;
+    setTimeout(() => {
+        toast.classList.remove("show");
+        isToastVisible = false;
+    }, 1500);
+};
+
+const mapNameMapping = {
+    "sp_a1_intro1": "Container Ride",
+    "sp_a1_intro2": "Portal Carousel",
+    "sp_a1_intro3": "Portal Gun",
+    "sp_a1_intro4": "Smooth Jazz",
+    "sp_a1_intro5": "Cube Momentum",
+    "sp_a1_intro6": "Future Starter",
+    "sp_a1_intro7": "Secret Panel",
+    "sp_a1_wakeup": "Wakeup",
+    "sp_a2_intro": "Incinerator",
+    "sp_a2_laser_intro": "Laser Intro",
+    "sp_a2_laser_stairs": "Laser Stairs",
+    "sp_a2_dual_lasers": "Dual Lasers",
+    "sp_a2_laser_over_goo": "Laser Over Goo",
+    "sp_a2_catapult_intro": "Catapult Intro",
+    "sp_a2_trust_fling": "Trust Fling",
+    "sp_a2_pit_flings": "Pit Flings",
+    "sp_a2_fizzler_intro": "Fizzler Intro",
+    "sp_a2_sphere_peek": "Ceiling Catapult",
+    "sp_a2_ricochet": "Ricochet",
+    "sp_a2_bridge_intro": "Bridge Intro",
+    "sp_a2_bridge_the_gap": "Bridge The Gap",
+    "sp_a2_turret_intro": "Turret Intro",
+    "sp_a2_laser_relays": "Laser Relays",
+    "sp_a2_turret_blocker": "Turret Blocker",
+    "sp_a2_laser_vs_turret": "Laser vs Turret",
+    "sp_a2_pull_the_rug": "Pull the Rug",
+    "sp_a2_column_blocker": "Column Blocker",
+    "sp_a2_laser_chaining": "Laser Chaining",
+    "sp_a2_triple_laser": "Triple Laser",
+    "sp_a2_bts1": "Jailbreak",
+    "sp_a2_bts2": "Escape",
+    "sp_a2_bts3": "Turret Factory",
+    "sp_a2_bts4": "Turret Sabotage",
+    "sp_a2_bts5": "Neurotoxin Sabotage",
+    "sp_a2_bts6": "Tube Ride",
+    "sp_a2_core": "Core",
+    "sp_a3_00": "Long Fall",
+    "sp_a3_01": "Underground",
+    "sp_a3_03": "Cave Johnson",
+    "sp_a3_jump_intro": "Repulsion Intro",
+    "sp_a3_bomb_flings": "Bomb Flings",
+    "sp_a3_crazy_box": "Crazy Box",
+    "sp_a3_transition01": "PotatOS",
+    "sp_a3_speed_ramp": "Propulsion Intro",
+    "sp_a3_speed_flings": "Propulsion Flings",
+    "sp_a3_portal_intro": "Conversion Intro",
+    "sp_a3_end": "Three Gels",
+    "sp_a4_intro": "Test",
+    "sp_a4_tb_intro": "Funnel Intro",
+    "sp_a4_tb_trust_drop": "Ceiling Button",
+    "sp_a4_tb_wall_button": "Wall Button",
+    "sp_a4_tb_polarity": "Polarity",
+    "sp_a4_tb_catch": "Funnel Catch",
+    "sp_a4_stop_the_box": "Stop the Box",
+    "sp_a4_laser_catapult": "Laser Catapult",
+    "sp_a4_laser_platform": "Laser Platform",
+    "sp_a4_speed_tb_catch": "Propulsion Catch",
+    "sp_a4_jump_polarity": "Repulsion Polarity",
+    "sp_a4_finale1": "Finale 1",
+    "sp_a4_finale2": "Finale 2",
+    "sp_a4_finale3": "Finale 3",
+    "sp_a4_finale4": "Finale 4",
+};

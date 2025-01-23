@@ -3,13 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Demo File Summarizer</title>
+  <title>Portal 2 Fullgame Demo Summarizer</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Demo File Summarizer</h1>
+  <h1>Portal 2 Fullgame Demo Summarizer</h1>
   <div id="drop-zone">Drag and drop your demo files here</div>
-  <button id="btn">Clear List</button>
+  <div id="button-container">
+    <button id="clear-btn">Clear List</button>
+    <button id="copy-btn">Copy Table</button>
+    <label><input type="checkbox" id="auto-clear">Auto Clear</label>
+    <label><input type="checkbox" id="compact-mode">Compact Mode</label>
+  </div>
   <table id="file-table">
     <thead>
       <!-- titles fill here -->
@@ -18,6 +23,18 @@
       <!-- File names will be appended here -->
     </tbody>
   </table>
+  <div id="description">
+    <p>This is a demo summarizer tool specifically designed for Portal 2 Fullgame runs.<br>
+    It is based on <a href="https://github.com/nekz/sdp" target="_blank">@nekz/sdp</a> and <a href="https://nekz.me/parser" target="_blank">nekz.me/parser</a>, with modifications for fullgame usage.<br>
+    Key features include:</p>
+    <ul>
+      <li>Groups demos based on splits.</li>
+      <li>Shows time in seconds, which is easier for calculations like min/max, +/-.</li>
+      <li>A single-column table format for easy copy-pasting into spreadsheets for horizontal comparison.</li>
+    </ul>
+    <p><strong>Note:</strong> Since the timing is based on demo ticks, it may not be exactly equal to actual split times.</p>
+  </div>
+  <div id="toast"></div>
   <script type="module" src="script.js"></script>
 </body>
 </html>
