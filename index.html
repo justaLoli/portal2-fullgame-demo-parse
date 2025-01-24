@@ -8,7 +8,9 @@
 </head>
 <body>
   <h1>Portal 2 Fullgame Demo Summarizer</h1>
-  <div id="drop-zone">Drag and drop your demo files here</div>
+  <div id="drop-zone">
+    <p style="text-align: center;">Drag and drop your demo files/folders here</p>
+  </div>
   <div id="button-container">
     <button id="clear-btn">Clear List</button>
     <button id="copy-btn">Copy Table</button>
@@ -24,16 +26,22 @@
     </tbody>
   </table>
   <div id="description">
-    <p>This is a demo summarizer tool specifically designed for Portal 2 Fullgame runs.<br>
+    <p>This is a demo summarizer tool specifically designed for Portal 2 fullgame runs.<br>
     It is based on <a href="https://github.com/nekz/sdp" target="_blank">@nekz/sdp</a> and <a href="https://nekz.me/parser" target="_blank">nekz.me/parser</a>, with modifications for fullgame usage.<br>
+    <!-- <p>It supports dragging:</p>
+    <ul>
+      <li>All demo files from a single fullgame run.</li>
+      <li>One or more folders, each containing demos from a single run.</li>
+      <li>A top-level folder which contains folders for multiple runs.</li>
+    </ul> -->
     Key features include:</p>
     <ul>
       <li>Groups demos based on splits.</li>
       <li>Shows time in seconds, which is easier for calculations like min/max, +/-.</li>
-      <li>A single-column table format for easy copy-pasting into spreadsheets for horizontal comparison.</li>
+      <li>Multi runs support.</li>
     </ul>
     <p><strong>Demos are first sorted by file name, so make sure the demos' names retain their original format (i.e. xxx.dem, xxx_2.dem, ...)</strong></p>
-    <p><strong>Note:</strong> Since the timing is based on demo ticks, it may not be exactly equal to actual split times.</p>
+    <p><strong>Note:</strong> Since the timing is based on demo ticks, the calculated "demo time" will be a bit off (usually &lt;.2s) from the actual "speedrun time".</p>
   </div>
   <div id="toast"></div>
   <script type="module" src="script.js"></script>

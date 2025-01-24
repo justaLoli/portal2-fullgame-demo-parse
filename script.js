@@ -12,7 +12,7 @@ const dropZone = document.getElementById("drop-zone");
 const clearButton = document.getElementById("clear-btn");
 const copyButton = document.getElementById("copy-btn");
 const autoClearCheckbox = document.getElementById('auto-clear');
-const compactModeCheckbox = document.getElementById('hide-demos');
+const hideDemosCheckbox = document.getElementById('hide-demos');
 const fileTableBody = document.querySelector("#file-table tbody");
 const fileTableHead = document.querySelector("#file-table thead");
 
@@ -92,7 +92,7 @@ const showCompactTable = () => {
 }
 // const updateTable = () => {
 //     if (groupedFileList.length===0){clearTable();return;}
-//     if (compactModeCheckbox.checked){
+//     if (hideDemosCheckbox.checked){
 //         showCompactTable();
 //     }
 //     else{
@@ -111,10 +111,12 @@ const createLeftColumn = () => {
     });
     Object.values(mapNameMapping).forEach(mapName=>{
         const row1 = document.createElement("tr");
+        row1.classList.add("map-row");
         const cell1 = document.createElement("td");
         cell1.innerHTML = mapName;
         row1.appendChild(cell1);
         const row2 = document.createElement("tr");
+        row2.classList.add("demo-row")
         const cell2 = document.createElement("td");
         cell2.innerHTML = "Demos";
         row2.appendChild(cell2);
@@ -349,6 +351,7 @@ dropZone.addEventListener("drop", async (event) => {
 clearButton.addEventListener("click", () => {
     fileList.length=0;
     groupedFileList.length = 0;
+    fileGroupedByFolder = {};
     clearTable();
 });
 // 复制
@@ -361,7 +364,16 @@ copyButton.addEventListener("click", () => {
     window.getSelection().removeAllRanges();
     showToast("Table copied to clipboard!");
 });
-compactModeCheckbox.addEventListener('change', ()=>{updateTable();});
+hideDemosCheckbox.addEventListener('change', (e) => {
+    const rows = document.querySelectorAll(".demo-row");
+    rows.forEach(row => {
+        if (e.target.checked) {
+            row.style.display = "none";
+        } else {
+            row.style.display = "";
+        }
+    });
+});
 // 处理拖拽区的 hover 状态
 dropZone.addEventListener("dragover", (event) => {
     event.preventDefault();
