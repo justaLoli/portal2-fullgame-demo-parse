@@ -21,10 +21,6 @@ let fileGroupedByFolder = {};
 
 // 存储文件数据
 // {file:demo, mapName: undefined, playbackTime:undefined, playbackTicks:undefined, parsed:False}
-const fileList = [];
-
-const groupedFileList = [];
-
 
 // 排序文件列表，按数字顺序排序
 const sortFiles = (fileList) => {
@@ -43,6 +39,8 @@ const sortFiles = (fileList) => {
         return a.file.name.localeCompare(b.file.name);
     });
 };
+
+//Table Editing
 const clearTable = () => {
     fileTableBody.innerHTML = '';
     fileTableHead.innerHTML = '';
@@ -56,50 +54,6 @@ const addTableTitleRow = (titles) => {
     });
     fileTableHead.appendChild(headerRow);
 };
-// 更新表格显示
-const showFullTable = () => {
-    clearTable(); // 清空表格
-    addTableTitleRow(["Split Name", "Split Time (Seconds)", "Demo Files"])
-    groupedFileList.forEach( group => {
-        const row = document.createElement("tr");
-        const nameCell = document.createElement("td");
-        nameCell.textContent = mapNameMapping[group.splitName] || group.splitName;
-        const timeCell = document.createElement("td");
-        timeCell.textContent = (Math.round(group.sumTime * 1000) / 1000).toFixed(3);
-        const demosCell = document.createElement("td");
-        demosCell.innerHTML = group.files.map(file => file.file.name).join("\n");
-        row.appendChild(nameCell);
-        row.appendChild(timeCell);
-        row.appendChild(demosCell);
-        fileTableBody.appendChild(row);
-    } );
-}
-const showCompactTable = () => {
-    clearTable();
-    addTableTitleRow([player]);
-    groupedFileList.forEach( group => {
-        const row1 = document.createElement("tr");
-        const timeCell = document.createElement("td");
-        timeCell.textContent = (Math.round(group.sumTime * 1000) / 1000).toFixed(3);
-        row1.appendChild(timeCell);
-        const row2 = document.createElement("tr");
-        const demosCell = document.createElement("td");
-        demosCell.innerHTML = group.files.map(file => file.file.name).join("<br>");
-        row2.appendChild(demosCell);
-        fileTableBody.appendChild(row1);
-        fileTableBody.appendChild(row2);
-    });
-}
-// const updateTable = () => {
-//     if (groupedFileList.length===0){clearTable();return;}
-//     if (hideDemosCheckbox.checked){
-//         showCompactTable();
-//     }
-//     else{
-//         showFullTable();
-//     }
-// };
-
 const createLeftColumn = () => {
     clearTable();
     ["Folder","Runner","Speedrun Time","Demo Time"].forEach( content=>{
@@ -146,7 +100,7 @@ const addTableColumn = (titleList, groupedFileList) => {
     });
 }
 
-
+// Parse and Split and Timing
 const parser = SourceDemoParser.default();
 const speedrunTimer = SourceTimer.default();
 const sarTimer = SarTimer.default();
@@ -214,7 +168,7 @@ const parseListFiles = async (fileList)=>{
         }
     });
 };
-//this is bad and will not add to correct time :( so forget about it
+//this is bad and will not add to correct time :(
 const tuneDemoTime = (fileList)=>{
     let sar_speedrun_demo_offset = 18637; // magic number :)
     const container_ride = fileList.find(
@@ -263,16 +217,11 @@ const groupFilesToSplits = (fileList)=> {
     return groupedFileList
 }
 
-
-
-
 // 处理拖放文件
 dropZone.addEventListener("drop", async (event) => {
     event.preventDefault();
     dropZone.classList.remove("dragover");
     if(autoClearCheckbox.checked){
-        fileList.length = 0;
-        groupedFileList.length = 0;
         fileGroupedByFolder = {};
     }
 
@@ -290,22 +239,7 @@ dropZone.addEventListener("drop", async (event) => {
         }
     }
     await Promise.all(tasks);
-    console.log(fileGroupedByFolder);
-    // debugger;
 
-    // const files = Array.from(event.dataTransfer.files);
-    // const updatedFiles = files.map(demo => {
-    //     return {
-    //         file: demo,
-    //         mapName: undefined,
-    //         playbackTime: undefined,
-    //         playbackTicks: undefined,
-    //         parsed: false
-    //     };
-    // });
-    // debugger;
-    // fileList.push(...updatedFiles);
-    // sortFiles();
     clearTable();
     addTableTitleRow(["Please wait while the demos are parsing..."]);
     if (Object.keys(fileGroupedByFolder).length===0){
@@ -333,24 +267,9 @@ dropZone.addEventListener("drop", async (event) => {
             groupedFileList
         );
     }
-    // parseListFiles().then(()=>{
-    //     groupFilesToSplits();
-    //     updateTable(); // 更新表格显示
-    //     console.log(fileList);
-    //     const sumPlaybackTime = () => {
-    //         // const ticks = fileList.reduce((total, item) => total + (item.playbackTicks || 0), 0);
-    //         return fileList.reduce((total, item) => total + (item.playbackTime || 0), 0);
-    //         // return Math.round(ticks/60 *1000)/1000;
-    //     };
-    //     console.log(sumPlaybackTime());
-    //     console.log(formatTime(sumPlaybackTime()));
-    // });
-    // debugger;
 });
 // 处理排序按钮点击
 clearButton.addEventListener("click", () => {
-    fileList.length=0;
-    groupedFileList.length = 0;
     fileGroupedByFolder = {};
     clearTable();
 });
@@ -382,8 +301,6 @@ dropZone.addEventListener("dragover", (event) => {
 dropZone.addEventListener("dragleave", () => {
     dropZone.classList.remove("dragover");
 });
-
-
 
 
 // Folder drag-and-drop support

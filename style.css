@@ -57,21 +57,14 @@ h1 {
   background-color: #fff;
   transition: background-color 0.3s;
 }
-#drop-description{
-/*  padding: 0 200px;*/
-margin: 0 auto;
-width: fit-content;
-}
 
 #description {
   border: 2px dashed #ccc;
   border-radius: 10px;
   padding: 20px;
-/*  text-align: center;*/
   margin: 20px auto;
   width: 80%;
   background-color: #f9f9f9;
-  transition: background-color 0.3s;
 }
 #description p{
   line-height: 1.5;
@@ -91,10 +84,19 @@ width: fit-content;
   background-color: #e0f7fa;
 }
 
-#file-table {
+#table-container{
   width: 80%;
   margin: 20px auto;
+  overflow-x: auto;
+  font-size: 80%;
+}
+
+#file-table {
   border-collapse: collapse;
+}
+
+.demo-row{
+  background-color: #f0f0f0;
 }
 
 #file-table th, #file-table td {
@@ -105,5 +107,5 @@ width: fit-content;
 }
 
 #file-table th {
-  background-color: #f2f2f2;
+  background-color: #ddd;
 }
