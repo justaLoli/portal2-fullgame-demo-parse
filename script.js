@@ -12,9 +12,13 @@ const dropZone = document.getElementById("drop-zone");
 const clearButton = document.getElementById("clear-btn");
 const copyButton = document.getElementById("copy-btn");
 const autoClearCheckbox = document.getElementById('auto-clear');
-const compactModeCheckbox = document.getElementById('compact-mode');
+const compactModeCheckbox = document.getElementById('hide-demos');
 const fileTableBody = document.querySelector("#file-table tbody");
 const fileTableHead = document.querySelector("#file-table thead");
+
+let fileGroupedByFolder = {};
+
+
 // 存储文件数据
 // {file:demo, mapName: undefined, playbackTime:undefined, playbackTicks:undefined, parsed:False}
 const fileList = [];
@@ -23,9 +27,8 @@ const groupedFileList = [];
 
 
 // 排序文件列表，按数字顺序排序
-const sortFiles = () => {
+const sortFiles = (fileList) => {
     fileList.sort((a, b) => {
-        console.log(a);
         const matchA = a.file.name.match(/_(\d+)\.dem$/);
         const matchB = b.file.name.match(/_(\d+)\.dem$/);
         if (matchA && matchB) {
@@ -44,11 +47,11 @@ const clearTable = () => {
     fileTableBody.innerHTML = '';
     fileTableHead.innerHTML = '';
 };
-const createTableTitle = (titles) => {
+const addTableTitleRow = (titles) => {
     const headerRow = document.createElement("tr");
     titles.forEach( title => {
         const headerCell = document.createElement("th");
-        headerCell.textContent = title;
+        headerCell.innerHTML = title;
         headerRow.appendChild(headerCell);
     });
     fileTableHead.appendChild(headerRow);
@@ -56,7 +59,7 @@ const createTableTitle = (titles) => {
 // 更新表格显示
 const showFullTable = () => {
     clearTable(); // 清空表格
-    createTableTitle(["Split Name", "Split Time (Seconds)", "Demo Files"])
+    addTableTitleRow(["Split Name", "Split Time (Seconds)", "Demo Files"])
     groupedFileList.forEach( group => {
         const row = document.createElement("tr");
         const nameCell = document.createElement("td");
@@ -73,7 +76,7 @@ const showFullTable = () => {
 }
 const showCompactTable = () => {
     clearTable();
-    createTableTitle([player]);
+    addTableTitleRow([player]);
     groupedFileList.forEach( group => {
         const row1 = document.createElement("tr");
         const timeCell = document.createElement("td");
@@ -87,15 +90,60 @@ const showCompactTable = () => {
         fileTableBody.appendChild(row2);
     });
 }
-const updateTable = () => {
-    if (groupedFileList.length===0){clearTable();return;}
-    if (compactModeCheckbox.checked){
-        showCompactTable();
+// const updateTable = () => {
+//     if (groupedFileList.length===0){clearTable();return;}
+//     if (compactModeCheckbox.checked){
+//         showCompactTable();
+//     }
+//     else{
+//         showFullTable();
+//     }
+// };
+
+const createLeftColumn = () => {
+    clearTable();
+    ["Folder","Runner","Speedrun Time","Demo Time"].forEach( content=>{
+        const row1 = document.createElement("tr");
+        const cell1 = document.createElement("th");
+        cell1.innerHTML = content;
+        row1.appendChild(cell1);
+        fileTableHead.appendChild(row1);
+    });
+    Object.values(mapNameMapping).forEach(mapName=>{
+        const row1 = document.createElement("tr");
+        const cell1 = document.createElement("td");
+        cell1.innerHTML = mapName;
+        row1.appendChild(cell1);
+        const row2 = document.createElement("tr");
+        const cell2 = document.createElement("td");
+        cell2.innerHTML = "Demos";
+        row2.appendChild(cell2);
+        fileTableBody.appendChild(row1);
+        fileTableBody.appendChild(row2);
+    });
+}
+const addTableColumn = (titleList, groupedFileList) => {
+    const rows = fileTableBody.rows;
+    if (rows.length === 0){
+        clearTable();
+        createLeftColumn();
     }
-    else{
-        showFullTable();
-    }
-};
+    titleList.forEach( (title,index) =>{
+        const cell = document.createElement("th");
+        cell.textContent = title;
+        fileTableHead.rows[index]?.appendChild(cell);
+    });
+    //addTableTitleRow(title);
+    groupedFileList.forEach( (group, index) => {
+        const timeCell = document.createElement("td");
+        timeCell.textContent = (Math.round(group.sumTime * 1000) / 1000).toFixed(3);
+        rows[index * 2]?.appendChild(timeCell);
+        const demosCell = document.createElement("td");
+        demosCell.innerHTML = group.files.map(file => file.file.name).join("<br>");
+        rows[index * 2 + 1]?.appendChild(demosCell);
+    });
+}
+
 
 const parser = SourceDemoParser.default();
 const speedrunTimer = SourceTimer.default();
@@ -105,16 +153,10 @@ const tryParseDemo = (ev, fullAdjustment = true) => {
     let demo = null;
     try {
         demo = parser.parse(ev.target.result);
-        // should not important
-        // demo.fileInfo = ev.target.source;
 
         // Fix message ticks
         demo.detectGame().adjustTicks();
-        player = demo.clientName;
-        // Split screen index
-        // should not important
-        // slots = demo.messages.find((msg) => msg.slot === 1) ? 2 : 1;
-
+        
         if (fullAdjustment) {
             // Fix header
             demo.adjustRange();
@@ -137,13 +179,15 @@ const tryParseDemo = (ev, fullAdjustment = true) => {
     }
     return demo;
 };
-const parseListFiles = ()=>{
+const parseListFiles = async (fileList)=>{
     return new Promise((resolve)=>{
         let count=0;
-
+        if(fileList.length === 0){resolve();}
         for (const file of fileList) {
             if(file.parsed){
-                ++count;
+                if(++count === fileList.length){
+                    resolve();
+                }
                 continue;
             }
             const reader = new FileReader();
@@ -154,11 +198,12 @@ const parseListFiles = ()=>{
                     file.playbackTime = demo.playbackTime ?? 0;
                     // file.playbackTime = Math.round(file.playbackTime * 1000) / 1000;
                     file.playbackTicks = demo.playbackTicks ?? 0;
+                    file.player = demo.clientName;
                     file.parsed = true;
                 }
 
                 if(++count === fileList.length){
-                    tuneDemoTime();
+                    tuneDemoTime(fileList);
                     resolve();
                 }
 
@@ -168,7 +213,7 @@ const parseListFiles = ()=>{
     });
 };
 //this is bad and will not add to correct time :( so forget about it
-const tuneDemoTime = ()=>{
+const tuneDemoTime = (fileList)=>{
     let sar_speedrun_demo_offset = 18637; // magic number :)
     const container_ride = fileList.find(
         (element) => element.mapName === "sp_a1_intro1"
@@ -187,7 +232,8 @@ const tuneDemoTime = ()=>{
     );
     if(long_fall){long_fall.playbackTime = 77.767;long_fall.playbackTicks = 4666;}
 };
-const groupFiles = ()=>{
+const groupFilesToSplits = (fileList)=> {
+    const groupedFileList = [];
     groupedFileList.length = 0; // clear list
     let group;
     const mapSet = new Set();
@@ -212,43 +258,91 @@ const groupFiles = ()=>{
     if(group){
         groupedFileList.push(group);
     }
-    console.log(groupedFileList);
+    return groupedFileList
 }
 
+
+
+
 // 处理拖放文件
-dropZone.addEventListener("drop", (event) => {
+dropZone.addEventListener("drop", async (event) => {
     event.preventDefault();
     dropZone.classList.remove("dragover");
     if(autoClearCheckbox.checked){
         fileList.length = 0;
         groupedFileList.length = 0;
+        fileGroupedByFolder = {};
     }
-    const files = Array.from(event.dataTransfer.files);
-    const updatedFiles = files.map(demo => {
-        return {
-            file: demo,
-            mapName: undefined,
-            playbackTime: undefined,
-            playbackTicks: undefined,
-            parsed: false
-        };
-    });
-    fileList.push(...updatedFiles);
-    sortFiles();
+
+    const items = event.dataTransfer.items;
+    const tasks = [];
+    for (const item of items){
+        if (item.kind === "file"){
+            // const entry = await item.getAsFileSystemHandle(); //bad compatibility so no.
+            const entry = item.webkitGetAsEntry();
+            if (entry.isDirectory){
+                tasks.push(handleDirectoryEntry(entry, entry.name + "/"));
+            } else if (entry.isFile){
+                tasks.push(handleFileEntry(entry, ""));
+            }
+        }
+    }
+    await Promise.all(tasks);
+    console.log(fileGroupedByFolder);
+    // debugger;
+
+    // const files = Array.from(event.dataTransfer.files);
+    // const updatedFiles = files.map(demo => {
+    //     return {
+    //         file: demo,
+    //         mapName: undefined,
+    //         playbackTime: undefined,
+    //         playbackTicks: undefined,
+    //         parsed: false
+    //     };
+    // });
+    // debugger;
+    // fileList.push(...updatedFiles);
+    // sortFiles();
     clearTable();
-    createTableTitle(["Please wait while the demos are parsing..."]);
-    parseListFiles().then(()=>{
-        groupFiles();
-        updateTable(); // 更新表格显示
-        console.log(fileList);
-        const sumPlaybackTime = () => {
-            // const ticks = fileList.reduce((total, item) => total + (item.playbackTicks || 0), 0);
-            return fileList.reduce((total, item) => total + (item.playbackTime || 0), 0);
-            // return Math.round(ticks/60 *1000)/1000;
-        };
-        console.log(sumPlaybackTime());
-        console.log(formatTime(sumPlaybackTime()));
-    });
+    addTableTitleRow(["Please wait while the demos are parsing..."]);
+    if (Object.keys(fileGroupedByFolder).length===0){
+        addTableTitleRow(["No demo file founded. Please drag something else or try again."]);
+    }
+    const sumPlaybackTime = (fileList) => {
+        return fileList.reduce((total, item) => total + (item.playbackTime || 0), 0);
+    };
+    let isFirstDirectory = true;
+    for (const directory in fileGroupedByFolder){
+        const fileList = fileGroupedByFolder[directory];
+        sortFiles(fileList);
+        await parseListFiles(fileList);
+        const groupedFileList = groupFilesToSplits(fileList);
+        if(isFirstDirectory){
+            clearTable();isFirstDirectory = false;
+        }
+        addTableColumn(
+            [
+                directory, 
+                fileList[0]?.player??"unknown", 
+                fileList[0]?.file.name.match(/_(.*?)\.dem/)?.[1] || "not matched.",
+                formatTime(sumPlaybackTime(fileList))
+            ],
+            groupedFileList
+        );
+    }
+    // parseListFiles().then(()=>{
+    //     groupFilesToSplits();
+    //     updateTable(); // 更新表格显示
+    //     console.log(fileList);
+    //     const sumPlaybackTime = () => {
+    //         // const ticks = fileList.reduce((total, item) => total + (item.playbackTicks || 0), 0);
+    //         return fileList.reduce((total, item) => total + (item.playbackTime || 0), 0);
+    //         // return Math.round(ticks/60 *1000)/1000;
+    //     };
+    //     console.log(sumPlaybackTime());
+    //     console.log(formatTime(sumPlaybackTime()));
+    // });
     // debugger;
 });
 // 处理排序按钮点击
@@ -277,6 +371,54 @@ dropZone.addEventListener("dragleave", () => {
     dropZone.classList.remove("dragover");
 });
 
+
+
+
+// Folder drag-and-drop support
+async function handleDirectoryEntry(entry, rootPath) {
+    const reader = entry.createReader();
+    const readEntries = async () => {
+        return new Promise((resolve, reject) => {
+            reader.readEntries((entries) => {
+                if (entries) resolve(entries);
+                else reject(new Error("Failed to read entries"));
+            });
+        });
+    };
+    let entries = await readEntries();
+    let tasks = [];
+    for (const subEntry of entries) {
+        if (subEntry.isFile) {
+            tasks.push(handleFileEntry(subEntry, rootPath));
+        } else if (subEntry.isDirectory) {
+            tasks.push(handleDirectoryEntry(subEntry, rootPath + subEntry.name + "/")); // 递归调用，传递根目录名
+        }
+    }
+    await Promise.all(tasks);
+}
+
+async function handleFileEntry(entry, rootPath){
+    const processFile = (file, path) => {
+        if (!file.name.endsWith(".dem") && !file.name.endsWith(".DEM")){console.log(`${file.name} not end with .dem, skipped.`);return;}
+        if (!fileGroupedByFolder[path]) {
+            fileGroupedByFolder[path] = [];
+        }
+        fileGroupedByFolder[path].push({
+            file: file,
+            mapName: undefined,
+            playbackTime: undefined,
+            playbackTicks: undefined,
+            player: undefined,
+            parsed: false
+        });
+    }
+    return new Promise( (resolve, reject) => {
+        entry.file(
+            (file)=>{processFile(file,rootPath);resolve();},
+            (error)=>{reject(error);});
+    });
+}
+
 // Util
 const formatTime = (time) => {
     let sec = Math.floor(time);
@@ -284,10 +426,6 @@ const formatTime = (time) => {
             .toString()
             .padStart(6, "0")
             .slice(0, 3);
-    // const ms = Math.round((time - sec) * 1000).toString().padStart(3,"0");
-        // .toString()
-        // .padStart(6, "0")
-        // .slice(0, 3);
 
     if (sec >= 60) {
         let min = sec / 60;
