@@ -18,6 +18,7 @@ const clearButton = document.getElementById("clear-btn");
 const copyButton = document.getElementById("copy-btn");
 const autoClearCheckbox = document.getElementById('auto-clear');
 const hideDemosCheckbox = document.getElementById('hide-demos');
+const formatTimeCheckbox = document.getElementById('format-time');
 const fileTableBody = document.querySelector("#file-table tbody");
 const fileTableHead = document.querySelector("#file-table thead");
 
@@ -90,10 +91,16 @@ const addTableColumn = (titleList, groupedFileList) => {
         cell.textContent = title;
         fileTableHead.rows[index]?.appendChild(cell);
     });
-    //addTableTitleRow(title);
     groupedFileList.forEach( (group, index) => {
         const timeCell = document.createElement("td");
-        timeCell.textContent = (Math.round(group.sumTick / 60 * 1000) / 1000).toFixed(3);
+        //put two possible time format here
+        const div1 = document.createElement("div");
+        div1.classList.add("simple-time");
+        div1.textContent = (Math.round(group.sumTick / 60 * 1000) / 1000).toFixed(3);
+        const div2 = document.createElement("div");
+        div2.classList.add("formatted-time");
+        div2.textContent = formatTime(group.sumTick/60);
+        timeCell.appendChild(div1);timeCell.appendChild(div2);
         rows[index * 2]?.appendChild(timeCell);
         const demosCell = document.createElement("td");
         demosCell.innerHTML = group.files.map(file => file.file.name).join("<br>");
@@ -348,15 +355,32 @@ copyButton.addEventListener("click", () => {
     window.getSelection().removeAllRanges();
     showToast("Table copied to clipboard!");
 });
+const updateDemoDisplay = () => {
+    if(hideDemosCheckbox.checked){
+        document.documentElement.style.setProperty('--display-demos', "none");
+    }
+    else{
+        document.documentElement.style.setProperty('--display-demos', "table-row");
+    }
+};
+updateDemoDisplay();
 hideDemosCheckbox.addEventListener('change', (e) => {
-    const rows = document.querySelectorAll(".demo-row");
-    rows.forEach(row => {
-        if (e.target.checked) {
-            row.style.display = "none";
-        } else {
-            row.style.display = "";
-        }
-    });
+    updateDemoDisplay();
+});
+//initial: set hide formatted time.
+const updateTimeDisplay = () => {
+    if(formatTimeCheckbox.checked){
+        document.documentElement.style.setProperty('--display-formatted-time',"");
+        document.documentElement.style.setProperty('--display-simple-time',"none");
+    }
+    else{
+        document.documentElement.style.setProperty('--display-formatted-time',"none");
+        document.documentElement.style.setProperty('--display-simple-time',"");
+    }
+};
+updateTimeDisplay();
+formatTimeCheckbox.addEventListener('change', (e) => {
+    updateTimeDisplay();
 });
 // 处理拖拽区的 hover 状态
 dropZone.addEventListener("dragover", (event) => {
