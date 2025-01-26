@@ -58,7 +58,7 @@ const addTableTitleRow = (titles) => {
 };
 const createLeftColumn = () => {
     clearTable();
-    ["Folder","Runner","Speedrun Time","Demo Time"].forEach( content=>{
+    ["Folder","Runner","Speedrun Time","Demo Time","SAR Timing"].forEach( content=>{
         const row1 = document.createElement("tr");
         const cell1 = document.createElement("th");
         cell1.innerHTML = content;
@@ -304,7 +304,7 @@ dropZone.addEventListener("drop", async (event) => {
             if (entry.isDirectory){
                 tasks.push(handleDirectoryEntry(entry, entry.name + "/"));
             } else if (entry.isFile){
-                tasks.push(handleFileEntry(entry, ""));
+                tasks.push(handleFileEntry(entry, "/"));
             }
         }
     }
@@ -334,7 +334,8 @@ dropZone.addEventListener("drop", async (event) => {
                 directory, 
                 fileList[0]?.player??"unknown", 
                 fileList[0]?.file.name.match(/_(.*?)\.dem/)?.[1] || "not matched.",
-                formatTime(sumPlaybackTime(groupedFileList))
+                formatTime(sumPlaybackTime(groupedFileList)),
+                (fileList[fileList.length-1].sarSplits!==null || fileList[fileList-1].sarSplits!==undefined) && fileList[fileList.length-1].sarSplits?.reduce((total, item) => total + (item.nsegs || 0), 0) === fileList.length
             ],
             groupedFileList
         );

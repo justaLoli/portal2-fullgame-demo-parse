@@ -39,12 +39,13 @@
     </ul> -->
     Key features include:</p>
     <ul>
+      <li>Parse SAR speedrun message for percise fullgame timing</li>
       <li>Groups demos based on splits.</li>
       <li>Shows time in seconds, which is easier for calculations like min/max, +/-.</li>
       <li>Multi runs support.</li>
     </ul>
     <p><strong>Demos are first sorted by file name, so make sure the demos' names retain their original format (i.e. xxx.dem, xxx_2.dem, ...)</strong></p>
-    <p><strong>Note:</strong> Since the timing is based on demo ticks, the calculated "demo time" will be a bit off (usually &lt;.2s) from the actual "speedrun time".</p>
+    <p><strong>Note:</strong>When SAR timing failed, the program will revert to demo timing, which could be off from the actual time.</p>
   </div>
   <div id="toast"></div>
   <script type="module" src="script.js"></script>
