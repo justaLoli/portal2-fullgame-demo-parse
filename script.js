@@ -1,7 +1,12 @@
 import {
-        DemoMessages,
-        SourceDemoParser,
+    DemoMessages,
+    SourceDemoParser,
 } from "https://unpkg.com/@nekz/sdp@0.10.0/esm/src/mod.js";
+import {
+    isSarMessage,
+    readSarMessages,
+    SarDataType
+} from "https://unpkg.com/@nekz/sdp@0.10.0/esm/src/utils/mod.js";
 import {
     SarTimer,
     SourceTimer,
@@ -17,10 +22,6 @@ const fileTableBody = document.querySelector("#file-table tbody");
 const fileTableHead = document.querySelector("#file-table thead");
 
 let fileGroupedByFolder = {};
-
-
-// 存储文件数据
-// {file:demo, mapName: undefined, playbackTime:undefined, playbackTicks:undefined, parsed:False}
 
 // 排序文件列表，按数字顺序排序
 const sortFiles = (fileList) => {
@@ -92,7 +93,7 @@ const addTableColumn = (titleList, groupedFileList) => {
     //addTableTitleRow(title);
     groupedFileList.forEach( (group, index) => {
         const timeCell = document.createElement("td");
-        timeCell.textContent = (Math.round(group.sumTime * 1000) / 1000).toFixed(3);
+        timeCell.textContent = (Math.round(group.sumTick / 60 * 1000) / 1000).toFixed(3);
         rows[index * 2]?.appendChild(timeCell);
         const demosCell = document.createElement("td");
         demosCell.innerHTML = group.files.map(file => file.file.name).join("<br>");
@@ -151,8 +152,6 @@ const parseListFiles = async (fileList)=>{
                 const demo = tryParseDemo(ev);
                 if(demo != null){
                     file.mapName = demo.mapName ?? "unknown";
-                    file.playbackTime = demo.playbackTime ?? 0;
-                    // file.playbackTime = Math.round(file.playbackTime * 1000) / 1000;
                     file.playbackTicks = demo.playbackTicks ?? 0;
                     file.player = demo.clientName;
                     file.parsed = true;
@@ -168,6 +167,41 @@ const parseListFiles = async (fileList)=>{
         }
     });
 };
+const getSARSplitsInfo = async (fileList) => {
+    const file = fileList[fileList.length - 1];
+    
+    // 只有在 sarSplit 未定义时，才会进行读取
+    if (file.sarSplit !== undefined && file.sarSplit !== null) {
+        return; // 如果已经有 sarSplit 数据，直接返回
+    }
+    
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        
+        // 异步加载文件
+        reader.onload = (ev) => {
+            const demo = tryParseDemo(ev);
+            if (demo === null || demo === undefined) {
+                resolve(); // 读取失败或无法解析时，返回
+                return;
+            }
+            
+            const messages = readSarMessages(demo);
+            const speedrun = messages.find(isSarMessage(SarDataType.SpeedrunTime));
+            if (speedrun === undefined || speedrun === null) {
+                resolve(); // 未找到 speedrun 信息时，返回
+                return;
+            }
+            
+            file.sarSplits = speedrun.splits; // 赋值 sarSplits
+            resolve(); // 完成处理后，调用 resolve
+        };
+        
+        // 触发文件读取
+        reader.readAsArrayBuffer(file.file);
+    });
+};
+
 //this is bad and will not add to correct time :(
 const tuneDemoTime = (fileList)=>{
     let sar_speedrun_demo_offset = 18637; // magic number :)
@@ -176,19 +210,18 @@ const tuneDemoTime = (fileList)=>{
     );
     if(container_ride){
         container_ride.playbackTicks += sar_speedrun_demo_offset;
-        container_ride.playbackTime = container_ride.playbackTicks / 60;
-        container_ride.playbackTime = Math.round(fileList[0].playbackTime * 1000) / 1000;
     }
     const tube_ride = fileList.find(
         (element) => element.mapName === "sp_a2_bts6"
     );
-    if(tube_ride){tube_ride.playbackTime = 51.867;tube_ride.playbackTicks = 3112;}
+    if(tube_ride){tube_ride.playbackTicks = 3112;}
     const long_fall = fileList.find(
         (element) => element.mapName === "sp_a3_00"
     );
-    if(long_fall){long_fall.playbackTime = 77.767;long_fall.playbackTicks = 4666;}
+    if(long_fall){long_fall.playbackTicks = 4666;}
 };
-const groupFilesToSplits = (fileList)=> {
+
+const groupFilesToSplits_Naive = (fileList) => {
     const groupedFileList = [];
     groupedFileList.length = 0; // clear list
     let group;
@@ -202,19 +235,49 @@ const groupFilesToSplits = (fileList)=> {
             group = {
                 files: [file],
                 splitName: file.mapName,
-                sumTime: file.playbackTime,
                 sumTick: file.playbackTicks
             };
         } else {
             group.files.push(file);
-            group.sumTime += file.playbackTime;
             group.sumTick += file.playbackTicks;
         }
     });
     if(group){
         groupedFileList.push(group);
     }
+    // element in groupedFileList: {files, sumTime, sumTick}
     return groupedFileList
+}
+const groupFilesToSplits = (fileList) => {
+    // Judge is there SAR splits info. 
+    const sarSplits = fileList[fileList.length-1].sarSplits;
+    if(sarSplits === undefined || sarSplits === null){
+        console.log('[-] No speedrun time found.');
+        return groupFilesToSplits_Naive(fileList);
+    }
+    console.log('[+] Found speedrun time');
+    if(sarSplits.reduce((total, item) => total + (item.nsegs || 0), 0) != fileList.length){
+        console.error("The total splits of sarsplits are not equal to demo file count. it's dangerous to continue the SAR split. revert to naive one.");
+        return groupFilesToSplits_Naive(fileList);
+    }
+
+    // element in groupedFileList: {files, sumTime, sumTick}
+    const groupedFileList = [];
+    let groupIndex = 0;
+    let fileIndex = 0;
+    while(fileIndex < fileList.length){
+        const group = {files:[], sumTime:0, sumTick: 0};
+        let segIndex = 0;
+        while(segIndex < sarSplits[groupIndex].nsegs){
+            group.files.push(fileList[fileIndex]);
+            group.sumTick += sarSplits[groupIndex].segs[segIndex].ticks;
+            segIndex += 1;
+            fileIndex += 1;
+        }
+        groupedFileList.push(group);
+        groupIndex += 1;
+    }
+    return groupedFileList;
 }
 
 // 处理拖放文件
@@ -245,14 +308,16 @@ dropZone.addEventListener("drop", async (event) => {
     if (Object.keys(fileGroupedByFolder).length===0){
         addTableTitleRow(["No demo file founded. Please drag something else or try again."]);
     }
-    const sumPlaybackTime = (fileList) => {
-        return fileList.reduce((total, item) => total + (item.playbackTime || 0), 0);
+    const sumPlaybackTime = (groupedFileList) => {
+        const sumTick = groupedFileList.reduce((total, item) => total + (item.sumTick || 0), 0);
+        return sumTick / 60;
     };
     let isFirstDirectory = true;
     for (const directory in fileGroupedByFolder){
         const fileList = fileGroupedByFolder[directory];
         sortFiles(fileList);
         await parseListFiles(fileList);
+        await getSARSplitsInfo(fileList);
         const groupedFileList = groupFilesToSplits(fileList);
         if(isFirstDirectory){
             clearTable();isFirstDirectory = false;
@@ -262,7 +327,7 @@ dropZone.addEventListener("drop", async (event) => {
                 directory, 
                 fileList[0]?.player??"unknown", 
                 fileList[0]?.file.name.match(/_(.*?)\.dem/)?.[1] || "not matched.",
-                formatTime(sumPlaybackTime(fileList))
+                formatTime(sumPlaybackTime(groupedFileList))
             ],
             groupedFileList
         );
@@ -334,8 +399,8 @@ async function handleFileEntry(entry, rootPath){
         }
         fileGroupedByFolder[path].push({
             file: file,
+            sarSplits: undefined,
             mapName: undefined,
-            playbackTime: undefined,
             playbackTicks: undefined,
             player: undefined,
             parsed: false

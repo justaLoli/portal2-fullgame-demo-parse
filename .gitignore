@@ -1,2 +1,4 @@
 .DS_Store
 .vite
+node_modules
+package*.json
