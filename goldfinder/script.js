@@ -35,30 +35,56 @@ dropZone.addEventListener("drop", async (event) => {
     }
     await Promise.all(tasks);
 
+    // Start the process
     const total = Object.keys(fileGroupedByFolder).length;
-    let completed = 0;
-
+    let done = 0;
+    const MAX_WORKERS = navigator.hardwareConcurrency || 4;
     const workers = [];
+    const taskQueue = [];
+    let activateWorkers = 0;
 
-    for (const directory in fileGroupedByFolder) {
-        const fileList =  fileGroupedByFolder[directory];
-        const worker = new Worker('worker.js', {type: "module"});
-        worker.postMessage({ directory, fileList });
+    for (let i = 0; i < MAX_WORKERS; i++){
+        const worker = new Worker("worker.js", {type: "module"});
+        worker.idle = true;
         worker.onmessage = (event) => {
-            const {directory, result} = event.data;
+            const { directory, result } = event.data;
             fileGroupedByFolder[directory] = result;
+            activateWorkers--;
+            done++;
+            worker.idle = true;
+            processNextTask();
+        };
+        worker.onerror = (event) => {
+            console.error("work error: ", event);
+            activateWorkers--;
+            worker.idle = true;
+            done++;
+            processNextTask();
+        };
 
-            completed ++;
-            progressText.innerText = `parsing ${completed} / ${total} ...`;
-
-            if(completed === total){
-                progressText.innerText = "parsing done.";
-                output.value = JSON.stringify(fileGroupedByFolder, null, 2);
-            }
-
-            worker.terminate();
-        }
         workers.push(worker);
+    }
+
+    const addTask = (directory, fileList) =>{
+        taskQueue.push({ directory, fileList });
+        processNextTask();
+    }
+
+    const processNextTask = () => {
+        if(done == total){
+            progressText.innerText = "parsing done.";
+            output.value = JSON.stringify(fileGroupedByFolder, null, 2); 
+        }
+        if (activateWorkers >= MAX_WORKERS || taskQueue.length === 0) return;
+        const { directory, fileList } = taskQueue.shift();
+        const availableWorker = workers.find(w => w.idle);
+
+        if(availableWorker){
+            availableWorker.idle = false;
+            activateWorkers++;
+            progressText.innerText = `parsing ${done} / ${total} ...`;
+            availableWorker.postMessage({ directory, fileList });
+        }
     }
 
 });
