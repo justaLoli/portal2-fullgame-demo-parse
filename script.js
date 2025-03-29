@@ -93,6 +93,7 @@ const addTableColumn = (titleList, groupedFileList) => {
         cell.textContent = title;
         fileTableHead.rows[index]?.appendChild(cell);
     });
+    let currentRow = 0;
     groupedFileList.forEach( (group, index) => {
         const timeCell = document.createElement("td");
         //put two possible time format here
@@ -107,7 +108,14 @@ const addTableColumn = (titleList, groupedFileList) => {
         const demosCell = document.createElement("td");
         demosCell.innerHTML = group.files.map(file => file.file.name).join("<br>");
         rows[index * 2 + 1]?.appendChild(demosCell);
+        currentRow += 2;
     });
+    // fill rest of the column, in case the column dont match.
+    for(let i = currentRow; i < rows.length; i++){
+        const emptyCell = document.createElement("td");
+        emptyCell.textContent = "";
+        rows[i].appendChild(emptyCell);
+    }
 }
 
 // Parse and Split and Timing
