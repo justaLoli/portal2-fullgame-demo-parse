@@ -19,7 +19,7 @@ dropZone.addEventListener("drop", async (event) => {
 
     // get all files.
     // hint for init
-    progressText.innerText = "Getting File Index";
+    progressText.innerText = "Getting file index...";
     const items = event.dataTransfer.items;
     const tasks = [];
     for (const item of items){
@@ -36,6 +36,7 @@ dropZone.addEventListener("drop", async (event) => {
     await Promise.all(tasks);
 
     // Start the process
+    progressText.innerText = "Get file index done. Preparing parse..."
     const total = Object.keys(fileGroupedByFolder).length;
     let done = 0;
     const MAX_WORKERS = navigator.hardwareConcurrency || 4;
@@ -72,7 +73,7 @@ dropZone.addEventListener("drop", async (event) => {
 
     const processNextTask = () => {
         if(done == total){
-            progressText.innerText = "parsing done.";
+            progressText.innerText = "Parsing done.";
             output.value = JSON.stringify(fileGroupedByFolder, null, 2); 
         }
         if (activateWorkers >= MAX_WORKERS || taskQueue.length === 0) return;
@@ -82,7 +83,7 @@ dropZone.addEventListener("drop", async (event) => {
         if(availableWorker){
             availableWorker.idle = false;
             activateWorkers++;
-            progressText.innerText = `parsing ${done} / ${total} ...`;
+            progressText.innerText = `Parsing ${done} / ${total} folder ...`;
             availableWorker.postMessage({ directory, fileList });
         }
     }
