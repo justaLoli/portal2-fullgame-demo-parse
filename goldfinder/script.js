@@ -1,18 +1,3 @@
-import {
-    DemoMessages,
-    SourceDemoParser,
-} from "https://unpkg.com/@nekz/sdp@0.10.0/esm/src/mod.js";
-import {
-    isSarMessage,
-    readSarMessages,
-    SarDataType
-} from "https://unpkg.com/@nekz/sdp@0.10.0/esm/src/utils/mod.js";
-import {
-    SarTimer,
-    SourceTimer,
-} from "https://unpkg.com/@nekz/sdp@0.10.0/esm/src/speedrun/mod.js";
-
-
 const dropZone = document.getElementById("drop-zone");
 const copyButton = document.getElementById("copy-btn");
 const downloadButton = document.getElementById('download-btn');
@@ -22,112 +7,6 @@ const outputText = document.getElementById("output");
 const searchForm = document.getElementById('search-form');
 
 let fileGroupedByFolder = {};
-
-// 排序文件列表，按数字顺序排序
-// not needed, but preserved
-const sortFiles = (fileList) => {
-    fileList.sort((a, b) => {
-        const matchA = a.file.name.match(/_(\d+)\.dem$/);
-        const matchB = b.file.name.match(/_(\d+)\.dem$/);
-        if (matchA && matchB) {
-            return parseInt(matchA[1]) - parseInt(matchB[1]);
-        }
-        if (!matchA && matchB) {
-            return -1;
-        }
-        if (matchA && !matchB) {
-            return 1;
-        }
-        return a.file.name.localeCompare(b.file.name);
-    });
-};
-
-// Parse and Split and Timing
-const parser = SourceDemoParser.default();
-const speedrunTimer = SourceTimer.default();
-const sarTimer = SarTimer.default();
-// copied the logic from https://nekz.me/parser
-const tryParseDemo = (ev, fullAdjustment = true) => {
-    let demo = null;
-    try {
-        demo = parser.parse(ev.target.result);
-
-        // Fix message ticks
-        demo.detectGame().adjustTicks();
-        
-        if (fullAdjustment) {
-            // Fix header
-            demo.adjustRange();
-
-            // Adjust 0-tick demos manually
-            if (demo.playbackTicks === 0) {
-                const ipt = demo.getIntervalPerTick();
-                demo.playbackTicks = 1;
-                demo.playbackTime = ipt;
-            } else {
-                // Speedrun rules apply here
-                demo.speedrun = speedrunTimer.time(demo);
-
-                // Check SAR support
-                demo.sar = sarTimer.time(demo);
-            }
-        }
-    } catch (error) {
-        console.error(error);
-    }
-    return demo;
-};
-const parseListFiles = async (fileList)=>{
-    return new Promise((resolve)=>{
-        let count=0;
-        if(fileList.length === 0){resolve();}
-        for (const file of fileList) {
-            if(file.parsed){
-                if(++count === fileList.length){
-                    resolve();
-                }
-                continue;
-            }
-            const reader = new FileReader();
-            reader.onload = (ev)=>{
-                const demo = tryParseDemo(ev);
-                if(demo != null){
-                    file.mapName = demo.mapName ?? "unknown";
-                    file.playbackTicks = demo.playbackTicks ?? 0;
-                    file.player = demo.clientName;
-                    file.parsed = true;
-                }
-
-                if(++count === fileList.length){
-                    resolve();
-                }
-
-            };
-            reader.readAsArrayBuffer(file.file);
-        }
-    });
-};
-
-const groupFilesByMapName = (fileList) => {
-    const groupedFiles = {};
-
-    fileList.forEach(file => {
-        if (!groupedFiles[file.mapName]) {
-            groupedFiles[file.mapName] = {
-                files: [],
-                sumTick: 0
-            };
-        }
-        const group = groupedFiles[file.mapName];
-        group.files.push({
-            fileName: file.file.name,
-            playbackTicks: file.playbackTicks
-        });
-        group.sumTick += file.playbackTicks;
-    });
-
-    return groupedFiles;
-};
 
 // 处理拖放文件
 dropZone.addEventListener("drop", async (event) => {
@@ -155,57 +34,34 @@ dropZone.addEventListener("drop", async (event) => {
         }
     }
     await Promise.all(tasks);
-debugger;
-const worker = new Worker('worker.js');
-const results = {};
-let completedTasks = 0;
-const totalTasks = Object.keys(fileGroupedByFolder).length; // 2 tasks per folder
 
-worker.onmessage = (event) => {
-    if (event.data.error){
-        console.error('Worker error: ', event.data.error);
-    } else {
-        const directory = event.data.directory;
-        fileGroupedByFolder[directory] = event.data.result;
+    const total = Object.keys(fileGroupedByFolder).length;
+    let completed = 0;
+
+    const workers = [];
+    const results = {};
+
+    for (const directory in fileGroupedByFolder) {
+        const fileList =  fileGroupedByFolder[directory];
+        const worker = new Worker('worker.js', {type: "module"});
+        worker.postMessage({ directory, fileList });
+        worker.onmessage = (event) => {
+            const {directory, result} = event.data;
+            fileGroupedByFolder[directory] = result;
+
+            completed ++;
+            progressText.innerText = `parsing ${completed} / ${total} ...`;
+
+            if(completed === total){
+                progressText.innerText = "parsing done.";
+                output.value = JSON.stringify(fileGroupedByFolder, null, 2);
+            }
+
+            worker.terminate();
+        }
+        workers.push(worker);
     }
-    completedTasks++;
-    progressText.innerText = `parsing ${completedTasks} / ${total} ...`;
-    if(completedTasks === totalTasks){
-      progressText.innerText = "parsing done.";
-      output.value = JSON.stringify(fileGroupedByFolder, null, 2);
-      worker.terminate();
-    }
-};
-let i = 0;
-  const total = Object.keys(fileGroupedByFolder).length;
-  for (const directory in fileGroupedByFolder) {
-    i++;
-    progressText.innerText = `parsing ${i} / ${total} ...`;
-    const fileList = fileGroupedByFolder[directory];
-    worker.postMessage({ directory, fileList });
-  }
 
-
-    // // start showing things.
-    // progressText.innerText = ""
-    // // const sumPlaybackTime = (groupedFileList) => {
-    // //     const sumTick = groupedFileList.reduce((total, item) => total + (item.sumTick || 0), 0);
-    // //     return sumTick / 60;
-    // // };
-    // let i = 0;
-    // const total = Object.keys(fileGroupedByFolder).length;
-    // for (const directory in fileGroupedByFolder){
-    //     i ++ ;
-    //     progressText.innerText = `parsing ${i} / ${total} ...`;
-    //     const fileList = fileGroupedByFolder[directory];
-    //     // sortFiles(fileList);
-    //     await parseListFiles(fileList);
-    //     const groupedFilesByMapName = groupFilesByMapName(fileList);
-    //     fileGroupedByFolder[directory] = groupedFilesByMapName;
-    // }
-    // progressText.innerText = "parsing done.";
-
-    // output.value = JSON.stringify(fileGroupedByFolder, null, 2);
 });
 // 处理拖拽区的 hover 状态
 dropZone.addEventListener("dragover", (event) => {
@@ -215,19 +71,6 @@ dropZone.addEventListener("dragover", (event) => {
 dropZone.addEventListener("dragleave", () => {
     dropZone.classList.remove("dragover");
 });
-
-
-// 复制
-copyButton.addEventListener("click", () => {
-    const range = document.createRange();
-    range.selectNode(document.getElementById("file-table"));
-    window.getSelection().removeAllRanges();
-    window.getSelection().addRange(range);
-    document.execCommand("copy");
-    window.getSelection().removeAllRanges();
-    showToast("Table copied to clipboard!");
-});
-
 
 // Filter
 searchForm.addEventListener("submit", (ev) => {
@@ -277,6 +120,9 @@ downloadFullButton.addEventListener("click", (ev) => {
     const fullJSON = JSON.stringify(fileGroupedByFolder, null, 2);
     downloadJSON(fullJSON, 'full_data.json');
 });
+
+// init textarea
+window.onload = () => {outputText.value = "";};
 
 // Folder drag-and-drop support
 async function handleDirectoryEntry(entry, rootPath) {

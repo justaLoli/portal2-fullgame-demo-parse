@@ -1,16 +1,4 @@
 // worker.js
-self.addEventListener('message', async (event) => {
-  debugger;
-  const { directory, fileList } = event.data;
-  try{
-    await parseListFiles(fileList);
-    const groupedFiles = groupFilesByMapName(fileList);
-    self.postMessage({ directory:directory, result: groupedFiles });
-  } catch (error) {
-    self.postMessage({ error });
-  }
-});
-
 import {
     DemoMessages,
     SourceDemoParser,
@@ -25,35 +13,17 @@ import {
     SourceTimer,
 } from "https://unpkg.com/@nekz/sdp@0.10.0/esm/src/speedrun/mod.js";
 
-
-const dropZone = document.getElementById("drop-zone");
-const copyButton = document.getElementById("copy-btn");
-const downloadButton = document.getElementById('download-btn');
-const downloadFullButton = document.getElementById('download-full-btn');
-const progressText = document.getElementById("progress-text");
-const outputText = document.getElementById("output");
-const searchForm = document.getElementById('search-form');
-
-let fileGroupedByFolder = {};
-
-// 排序文件列表，按数字顺序排序
-// not needed, but preserved
-const sortFiles = (fileList) => {
-    fileList.sort((a, b) => {
-        const matchA = a.file.name.match(/_(\d+)\.dem$/);
-        const matchB = b.file.name.match(/_(\d+)\.dem$/);
-        if (matchA && matchB) {
-            return parseInt(matchA[1]) - parseInt(matchB[1]);
-        }
-        if (!matchA && matchB) {
-            return -1;
-        }
-        if (matchA && !matchB) {
-            return 1;
-        }
-        return a.file.name.localeCompare(b.file.name);
-    });
-};
+self.addEventListener('message', async (event) => {
+    console.log("received:", event.data);
+    const { directory, fileList } = event.data;
+    try{
+        await parseListFiles(fileList);
+        const groupedFiles = groupFilesByMapName(fileList);
+        self.postMessage({ directory:directory, result: groupedFiles });
+    } catch (error) {
+        self.postMessage({ error });
+    }
+});
 
 // Parse and Split and Timing
 const parser = SourceDemoParser.default();
