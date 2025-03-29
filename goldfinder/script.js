@@ -15,12 +15,16 @@ import {
 
 const dropZone = document.getElementById("drop-zone");
 const copyButton = document.getElementById("copy-btn");
+const downloadButton = document.getElementById('download-btn');
+const downloadFullButton = document.getElementById('download-full-btn');
 const progressText = document.getElementById("progress-text");
 const outputText = document.getElementById("output");
+const searchForm = document.getElementById('search-form');
 
 let fileGroupedByFolder = {};
 
 // 排序文件列表，按数字顺序排序
+// not needed, but preserved
 const sortFiles = (fileList) => {
     fileList.sort((a, b) => {
         const matchA = a.file.name.match(/_(\d+)\.dem$/);
@@ -42,7 +46,7 @@ const sortFiles = (fileList) => {
 const parser = SourceDemoParser.default();
 const speedrunTimer = SourceTimer.default();
 const sarTimer = SarTimer.default();
-let player = "Unknown Player";
+// copied the logic from https://nekz.me/parser
 const tryParseDemo = (ev, fullAdjustment = true) => {
     let demo = null;
     try {
@@ -162,36 +166,16 @@ dropZone.addEventListener("drop", async (event) => {
     const total = Object.keys(fileGroupedByFolder).length;
     for (const directory in fileGroupedByFolder){
         i ++ ;
-        progressText.innerText = `${i} / ${total}`;
+        progressText.innerText = `parsing ${i} / ${total} ...`;
         const fileList = fileGroupedByFolder[directory];
         // sortFiles(fileList);
         await parseListFiles(fileList);
         const groupedFilesByMapName = groupFilesByMapName(fileList);
         fileGroupedByFolder[directory] = groupedFilesByMapName;
     }
-    progressText.innerText = "done parsing";
+    progressText.innerText = "parsing done.";
 
-    // 递归转换 Map 为普通对象
-    function mapToObject(obj) {
-        if (obj instanceof Map) {
-            return Object.fromEntries([...obj.entries()].map(([key, value]) => [key, mapToObject(value)]));
-        } else if (Array.isArray(obj)) {
-            return obj.map(mapToObject);
-        } else if (typeof obj === "object" && obj !== null) {
-            return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, mapToObject(value)]));
-        }
-        return obj;
-    }
-
-    // 转换 fileGroupedByFolder 并显示到 output
-    const fileGroupedByFolderObj = mapToObject(fileGroupedByFolder);
-
-    // // 使用 JSONView 显示数据
-    // const jsonView = new JSONView();
-    // jsonView.showJSON(fileGroupedByFolderObj);
     output.value = JSON.stringify(fileGroupedByFolder, null, 2);
-
-
 });
 // 处理拖拽区的 hover 状态
 dropZone.addEventListener("dragover", (event) => {
@@ -215,7 +199,54 @@ copyButton.addEventListener("click", () => {
 });
 
 
+// Filter
+searchForm.addEventListener("submit", (ev) => {
+    ev.preventDefault();
 
+    const mapName = document.getElementById('map-name').value;
+    const minTime = parseFloat(document.getElementById('min-time').value);
+    const maxTime = parseFloat(document.getElementById('max-time').value);
+
+    const minTicks = (minTime * 60) - 1;
+    const maxTicks = (maxTime * 60) + 1
+
+    const filteredData = {};
+
+    for (const folder in fileGroupedByFolder) {
+        if (fileGroupedByFolder.hasOwnProperty(folder)) {
+            const folderData = fileGroupedByFolder[folder];
+            for (const map in folderData) {
+                if (folderData.hasOwnProperty(map) && map === mapName) {
+                    const mapData = folderData[map];
+                    if (mapData.sumTick >= minTicks && mapData.sumTick <= maxTicks) {
+                        if (!filteredData[folder]) {
+                            filteredData[folder] = {};
+                        }
+                        filteredData[folder][map] = mapData;
+                    }
+                }
+            }
+        }
+    }
+
+    outputText.value = JSON.stringify(filteredData, null, 2);
+
+});
+
+
+// copy and download
+copyButton.addEventListener("click", (ev) => {
+    outputText.select();
+    document.execCommand("copy");
+    alert('Copied to clipboard!');
+});
+downloadButton.addEventListener("click", (ev) => {
+    downloadJSON(outputText.value, "output.json");
+});
+downloadFullButton.addEventListener("click", (ev) => {
+    const fullJSON = JSON.stringify(fileGroupedByFolder, null, 2);
+    downloadJSON(fullJSON, 'full_data.json');
+});
 
 // Folder drag-and-drop support
 async function handleDirectoryEntry(entry, rootPath) {
@@ -284,6 +315,17 @@ const formatTime = (time) => {
     }
     return `${Math.floor(sec)}.${ms}`;
 };
+function downloadJSON(json, filename) {
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
 
 const mapNameMapping = {
     "sp_a1_intro1": "Container Ride",
