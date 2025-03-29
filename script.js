@@ -19,6 +19,8 @@ const copyButton = document.getElementById("copy-btn");
 const autoClearCheckbox = document.getElementById('auto-clear');
 const hideDemosCheckbox = document.getElementById('hide-demos');
 const formatTimeCheckbox = document.getElementById('format-time');
+const completedOnlyCheckbox = document.getElementById('completed-only');
+const sarOnlyCheckbox = document.getElementById('sar-only');
 const fileTableBody = document.querySelector("#file-table tbody");
 const fileTableHead = document.querySelector("#file-table thead");
 
@@ -174,8 +176,8 @@ const parseListFiles = async (fileList)=>{
         }
     });
 };
-const getSARSplitsInfo = async (fileList) => {
-    const file = fileList[fileList.length - 1];
+const getSARSplitInfo = async (fileList) => {
+    const file = fileList.at(-1); // unique way to get last element
     
     // 只有在 sarSplit 未定义时，才会进行读取
     if (file.sarSplit !== undefined && file.sarSplit !== null) {
@@ -289,12 +291,16 @@ const groupFilesToSplits = (fileList) => {
 
 // 处理拖放文件
 dropZone.addEventListener("drop", async (event) => {
+    // routine 
     event.preventDefault();
     dropZone.classList.remove("dragover");
+    
+    // clear existing files if, if needed
     if(autoClearCheckbox.checked){
         fileGroupedByFolder = {};
     }
 
+    // get all files.
     const items = event.dataTransfer.items;
     const tasks = [];
     for (const item of items){
@@ -310,6 +316,7 @@ dropZone.addEventListener("drop", async (event) => {
     }
     await Promise.all(tasks);
 
+    // start showing things.
     clearTable();
     addTableTitleRow(["Please wait while the demos are parsing..."]);
     if (Object.keys(fileGroupedByFolder).length===0){
@@ -323,8 +330,12 @@ dropZone.addEventListener("drop", async (event) => {
     for (const directory in fileGroupedByFolder){
         const fileList = fileGroupedByFolder[directory];
         sortFiles(fileList);
+        const firstFileContainUnderscore = /_(.*?)\.dem/.test(fileList[0]?.file.name);
+        if (completedOnlyCheckbox.checked && !firstFileContainUnderscore){continue;}
+        await getSARSplitInfo(fileList);
+        const hasSARSplitMessage = fileList.at(-1)?.sarSplit != null; // undefined and null
+        if (sarOnlyCheckbox.checked && !hasSARSplitMessage){continue;}
         await parseListFiles(fileList);
-        await getSARSplitsInfo(fileList);
         const groupedFileList = groupFilesToSplits(fileList);
         if(isFirstDirectory){
             clearTable();isFirstDirectory = false;
