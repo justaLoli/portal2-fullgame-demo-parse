@@ -1,0 +1,125 @@
+:root {
+  --display-simple-time: "";
+  --display-formatted-time: "";
+  --display-demos: "table-row";
+}
+
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background-color: #f9f9f9;
+}
+
+h1 {
+  text-align: center;
+}
+
+/* ... 其他样式 */
+#toast {
+  visibility: visible;
+  min-width: 250px;
+  margin-left: -125px;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  border-radius: 2px;
+  padding: 16px;
+  position: fixed;
+  z-index: 1;
+  left: 50%;
+  bottom: 30px;
+  font-size: 17px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+#toast.show {
+  visibility: visible;
+  opacity: 1;
+}
+
+
+#button-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+#button-container label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 10px;
+}
+
+#drop-zone {
+/*  display: flex;*/
+  align-items: center;
+  border: 2px dashed #ccc;
+  border-radius: 10px;
+  padding: 0 20px;
+/*  text-align: center;*/
+  margin: 20px auto;
+  width: 80%;
+  background-color: #fff;
+  transition: background-color 0.3s;
+}
+
+#description {
+  border: 2px dashed #ccc;
+  border-radius: 10px;
+  padding: 20px;
+  margin: 20px auto;
+  width: 80%;
+  background-color: #f9f9f9;
+}
+#description p{
+  line-height: 1.5;
+  margin-bottom: 0px;;
+  margin-top: 0px;
+}
+#description ul{
+  margin-top: 0px;
+  margin-bottom: 0px;
+}
+#description ul li{
+  margin-top: 0px;
+  line-height: 1.5;
+}
+
+#drop-zone.dragover {
+  background-color: #e0f7fa;
+}
+
+#table-container{
+  width: 80%;
+  margin: 20px auto;
+  overflow-x: auto;
+  font-size: 80%;
+}
+
+#file-table {
+  border-collapse: collapse;
+}
+
+.demo-row{
+  background-color: #f0f0f0;
+  display: var(--display-demos);
+}
+
+.simple-time{
+  display: var(--display-simple-time);
+}
+.formatted-time{
+  display: var(--display-formatted-time);
+}
+
+#file-table th, #file-table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+  white-space: pre-wrap;
+}
+
+#file-table th {
+  background-color: #ddd;
+}

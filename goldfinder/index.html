@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal 2 Fullgame Gold Finder</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="devtools.css">
+  <!-- <script type="module" src="https://unpkg.com/json-view@0.4.0/JSONView.js"></script> -->
+</head>
+<body>
+  <h1>Portal 2 Fullgame Gold Finder</h1>
+  
+  <div id="drop-zone">
+    <p style="text-align: center;">Drag and drop your demo files/folders here</p>
+  </div>
+  
+  <p>Refresh page if you want to cleanup.</p>
+
+  <div id="progress-container">
+  <p>Progress: </p>
+  <div id="progress-text" style="margin-left: 10px;"></div>
+  </div>
+  
+  <p>Find:</p>
+  <form id="search-form">
+    <label for="map-name">Map Name:</label>
+    <input type="text" id="map-name" name="map-name" required>
+    
+    <label for="min-time">Min Time (sec):</label>
+    <input type="number" id="min-time" name="min-time" required>
+    
+    <label for="max-time">Max Time (sec):</label>
+    <input type="number" id="max-time" name="max-time" required>
+    
+    <button type="submit">Submit</button>
+  </form>
+  
+  <p>Results:</p>
+  <textarea id="output" readonly style="width: 100%;height: calc(100vh - 450px);"></textarea>
+  <!-- <div id="output"></div> -->
+  <button id="copy-btn">Copy</button>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>

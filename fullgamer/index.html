@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal 2 Fullgame Demo Summarizer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Portal 2 Fullgame Demo Summarizer</h1>
+  <div id="drop-zone">
+    <p style="text-align: center;">Drag and drop your demo files/folders here</p>
+  </div>
+  <div id="button-container">
+    <button id="clear-btn">Clear List</button>
+    <button id="copy-btn">Copy Table</button>
+    <label><input type="checkbox" id="auto-clear">Auto Clear</label>
+    <label><input type="checkbox" id="hide-demos">Hide Demos</label>
+    <label><input type="checkbox" id="format-time">Format Time</label>
+  </div>
+  <div id="button-container">
+    <label><input type="checkbox" id="completed-only">Only Completed Runs. </label>
+    <p>Description:  Only the folder's first demo file with an underscore in its file name (e.g. fullgame_[time].dem) will be parsed. Folder start with 'fullgame.dem' will not be parsed.</p>
+  </div>
+  <div id="button-container">
+    <label><input type="checkbox" id="sar-only">Only Runs With SAR's Message</label>
+    <p>Description: SAR puts fullgame's split time information in Finale 4's demo. Only parse folder containing that message. Note that some finished runs dont have this SAR message for some strange reason. If you find your runs missing, try using the first filter.
+    </p>
+  </div>
+  <p>Note: better not change the filter settings *during* parsing.</p>
+  <div id="table-container">
+    <table id="file-table">
+      <thead>
+        <!-- titles fill here -->
+      </thead>
+      <tbody>
+        <!-- File names will be appended here -->
+      </tbody>
+    </table>
+  </div>
+  <div id="description">
+    <p>This is a demo summarizer tool specifically designed for Portal 2 fullgame runs.<br>
+    It is based on <a href="https://github.com/nekz/sdp" target="_blank">@nekz/sdp</a> and <a href="https://nekz.me/parser" target="_blank">nekz.me/parser</a>, with modifications for fullgame usage.<br>
+    <!-- <p>It supports dragging:</p>
+    <ul>
+      <li>All demo files from a single fullgame run.</li>
+      <li>One or more folders, each containing demos from a single run.</li>
+      <li>A top-level folder which contains folders for multiple runs.</li>
+    </ul> -->
+    Key features include:</p>
+    <ul>
+      <li>Parse SAR speedrun message for percise fullgame timing</li>
+      <li>Group demos based on splits.</li>
+      <li>Show time in seconds, which is easier for calculations like min/max, +/-.</li>
+      <li>Multi runs support.</li>
+    </ul>
+    <p><strong>Demos are first sorted by file name, so make sure the demos' names retain their original format (i.e. xxx.dem, xxx_2.dem, ...)</strong></p>
+    <p><strong>Note:</strong>When SAR timing failed, the program will revert to demo timing, which could be off from the actual time.</p>
+  </div>
+  <div id="toast"></div>
+  <script type="module" src="script.js"></script>
+</body>
+</html>
