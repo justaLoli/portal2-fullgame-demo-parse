@@ -18,6 +18,15 @@
     <label><input type="checkbox" id="hide-demos">Hide Demos</label>
     <label><input type="checkbox" id="format-time">Format Time</label>
   </div>
+  <div id="button-container">
+    <label><input type="checkbox" id="completed-only">Only Completed Runs. </label>
+    <p>Description:  Only the folder's first demo file with an underscore in its file name (e.g. fullgame_[time].dem) will be parsed. Folder start with 'fullgame.dem' will not be parsed.</p>
+  </div>
+  <div id="button-container">
+    <label><input type="checkbox" id="sar-only">Only Runs With SAR's Message</label>
+    <p>Description: SAR puts fullgame's split time information in Finale 4's demo. Only parse folder containing that message.  
+    </p>
+  </div>
   <div id="table-container">
     <table id="file-table">
       <thead>
