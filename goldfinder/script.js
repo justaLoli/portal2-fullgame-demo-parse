@@ -39,7 +39,6 @@ dropZone.addEventListener("drop", async (event) => {
     let completed = 0;
 
     const workers = [];
-    const results = {};
 
     for (const directory in fileGroupedByFolder) {
         const fileList =  fileGroupedByFolder[directory];
