@@ -155,27 +155,57 @@ dropZone.addEventListener("drop", async (event) => {
         }
     }
     await Promise.all(tasks);
+debugger;
+const worker = new Worker('worker.js');
+const results = {};
+let completedTasks = 0;
+const totalTasks = Object.keys(fileGroupedByFolder).length; // 2 tasks per folder
 
-    // start showing things.
-    progressText.innerText = ""
-    // const sumPlaybackTime = (groupedFileList) => {
-    //     const sumTick = groupedFileList.reduce((total, item) => total + (item.sumTick || 0), 0);
-    //     return sumTick / 60;
-    // };
-    let i = 0;
-    const total = Object.keys(fileGroupedByFolder).length;
-    for (const directory in fileGroupedByFolder){
-        i ++ ;
-        progressText.innerText = `parsing ${i} / ${total} ...`;
-        const fileList = fileGroupedByFolder[directory];
-        // sortFiles(fileList);
-        await parseListFiles(fileList);
-        const groupedFilesByMapName = groupFilesByMapName(fileList);
-        fileGroupedByFolder[directory] = groupedFilesByMapName;
+worker.onmessage = (event) => {
+    if (event.data.error){
+        console.error('Worker error: ', event.data.error);
+    } else {
+        const directory = event.data.directory;
+        fileGroupedByFolder[directory] = event.data.result;
     }
-    progressText.innerText = "parsing done.";
+    completedTasks++;
+    progressText.innerText = `parsing ${completedTasks} / ${total} ...`;
+    if(completedTasks === totalTasks){
+      progressText.innerText = "parsing done.";
+      output.value = JSON.stringify(fileGroupedByFolder, null, 2);
+      worker.terminate();
+    }
+};
+let i = 0;
+  const total = Object.keys(fileGroupedByFolder).length;
+  for (const directory in fileGroupedByFolder) {
+    i++;
+    progressText.innerText = `parsing ${i} / ${total} ...`;
+    const fileList = fileGroupedByFolder[directory];
+    worker.postMessage({ directory, fileList });
+  }
 
-    output.value = JSON.stringify(fileGroupedByFolder, null, 2);
+
+    // // start showing things.
+    // progressText.innerText = ""
+    // // const sumPlaybackTime = (groupedFileList) => {
+    // //     const sumTick = groupedFileList.reduce((total, item) => total + (item.sumTick || 0), 0);
+    // //     return sumTick / 60;
+    // // };
+    // let i = 0;
+    // const total = Object.keys(fileGroupedByFolder).length;
+    // for (const directory in fileGroupedByFolder){
+    //     i ++ ;
+    //     progressText.innerText = `parsing ${i} / ${total} ...`;
+    //     const fileList = fileGroupedByFolder[directory];
+    //     // sortFiles(fileList);
+    //     await parseListFiles(fileList);
+    //     const groupedFilesByMapName = groupFilesByMapName(fileList);
+    //     fileGroupedByFolder[directory] = groupedFilesByMapName;
+    // }
+    // progressText.innerText = "parsing done.";
+
+    // output.value = JSON.stringify(fileGroupedByFolder, null, 2);
 });
 // 处理拖拽区的 hover 状态
 dropZone.addEventListener("dragover", (event) => {
