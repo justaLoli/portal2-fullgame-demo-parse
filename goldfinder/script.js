@@ -87,6 +87,10 @@ dropZone.addEventListener("drop", async (event) => {
         }
     }
 
+    for (const directory in fileGroupedByFolder){
+        addTask(directory, fileGroupedByFolder[directory]);
+    }
+
 });
 // 处理拖拽区的 hover 状态
 dropZone.addEventListener("dragover", (event) => {
