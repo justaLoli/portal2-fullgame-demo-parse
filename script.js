@@ -213,6 +213,8 @@ const getSARSplitsInfo = async (fileList) => {
 
 //this is bad and will not add to correct time :(
 const tuneDemoTime = (fileList)=>{
+    // dont do anything cuz it's bad
+    return;
     let sar_speedrun_demo_offset = 18637; // magic number :)
     const container_ride = fileList.find(
         (element) => element.mapName === "sp_a1_intro1"
