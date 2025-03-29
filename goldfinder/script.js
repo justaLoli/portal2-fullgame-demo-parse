@@ -105,17 +105,20 @@ const parseListFiles = async (fileList)=>{
 };
 
 const groupFilesByMapName = (fileList) => {
-    const groupedFiles = new Map();
+    const groupedFiles = {};
 
     fileList.forEach(file => {
-        if (!groupedFiles.has(file.mapName)) {
-            groupedFiles.set(file.mapName, {
+        if (!groupedFiles[file.mapName]) {
+            groupedFiles[file.mapName] = {
                 files: [],
                 sumTick: 0
-            });
+            };
         }
-        const group = groupedFiles.get(file.mapName);
-        group.files.push(file);
+        const group = groupedFiles[file.mapName];
+        group.files.push({
+            fileName: file.file.name,
+            playbackTicks: file.playbackTicks
+        });
         group.sumTick += file.playbackTicks;
     });
 
@@ -186,7 +189,7 @@ dropZone.addEventListener("drop", async (event) => {
     // // 使用 JSONView 显示数据
     // const jsonView = new JSONView();
     // jsonView.showJSON(fileGroupedByFolderObj);
-    output.value = JSON.stringify(fileGroupedByFolderObj, null, 2);
+    output.value = JSON.stringify(fileGroupedByFolder, null, 2);
 
 
 });
