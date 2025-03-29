@@ -176,7 +176,7 @@ const parseListFiles = async (fileList)=>{
         }
     });
 };
-const getSARSplitInfo = async (fileList) => {
+const getSARSplitsInfo = async (fileList) => {
     const file = fileList.at(-1); // unique way to get last element
     
     // 只有在 sarSplit 未定义时，才会进行读取
@@ -332,9 +332,9 @@ dropZone.addEventListener("drop", async (event) => {
         sortFiles(fileList);
         const firstFileContainUnderscore = /_(.*?)\.dem/.test(fileList[0]?.file.name);
         if (completedOnlyCheckbox.checked && !firstFileContainUnderscore){continue;}
-        await getSARSplitInfo(fileList);
-        const hasSARSplitMessage = fileList.at(-1)?.sarSplit != null; // undefined and null
-        if (sarOnlyCheckbox.checked && !hasSARSplitMessage){continue;}
+        await getSARSplitsInfo(fileList);
+        const hasSARSplitsMessage = fileList.at(-1)?.sarSplits != null; // undefined and null
+        if (sarOnlyCheckbox.checked && !hasSARSplitsMessage){continue;}
         await parseListFiles(fileList);
         const groupedFileList = groupFilesToSplits(fileList);
         if(isFirstDirectory){
