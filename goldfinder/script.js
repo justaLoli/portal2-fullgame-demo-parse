@@ -74,7 +74,7 @@ dropZone.addEventListener("drop", async (event) => {
     const processNextTask = () => {
         if(done == total){
             progressText.innerText = "Parsing done.";
-            output.value = JSON.stringify(fileGroupedByFolder, null, 2); 
+            outputText.value = JSON.stringify(fileGroupedByFolder, null, 2); 
         }
         if (activateWorkers >= MAX_WORKERS || taskQueue.length === 0) return;
         const { directory, fileList } = taskQueue.shift();
